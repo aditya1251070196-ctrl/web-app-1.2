@@ -15,3 +15,11 @@ Copyright (c) v-thiennp12
 Licensed under the MIT License
 
 Note: Any modifications, additions, or code written in this repository are also licensed under the MIT License, unless otherwise stated.
+
+## Disclaimer
+
+This project is intended for educational and experimental purposes.
+While efforts have been made to ensure reasonable behavior, predictions may not always be accurate.
+
+Users are encouraged to validate results independently before relying on them in real-world scenarios.
+
