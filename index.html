@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Traffic Sign Detector</title>
+ <script src="./tf.min.js"></script>
+
+ <link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#2196f3">
+
+ 
+
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1 style="color:azure">Traffic Sign Detector</h1>
+
+  <div class="container">
+
+    <!-- Camera Section -->
+<!-- Camera controls -->
+
+
+
+  <video id="video" width="320" height="240" autoplay></video>
+
+
+<canvas id="canvas" width="320" height="240" style="display:none;"></canvas><br>
+
+
+<button onclick="startCamera()">Start Camera</button>
+
+<button  id ="scanBtn" onclick="startTimedCameraPrediction(4000, 250)">
+  Scan (4 seconds)
+</button>
+<div id="scanOverlay" class="scan-overlay hidden">
+  <div class="scanner"></div>
+  <p>Scanning… Hold steady</p>
+</div>
+
+
+
+
+<br><br>
+
+
+    <input type="file" id="imageInput" accept="image/*" hidden> <br>
+    
+
+    <label for="imageInput" class="upload-label">Choose Image</label><br>
+    
+    <img id="preview" /><br>
+    <img id="processedPreview" alt="Processed image preview" /> 
+
+    <br><button id="detectBtn" onclick="detectImage()" disabled>
+  Detect
+</button>
+
+
+   <div> <h2 id="result"  style="color:azure">Prediction</h2>  </div>
+
+   
+<button onclick="stopCamera()">Stop Camera</button>
+<button onclick="refreshPage()">Refresh</button>
+
+
+
+
+  </div>
+
+
+  
+
+
+
+  <script src="script.js"></script>
+</body>
+
+</html>
