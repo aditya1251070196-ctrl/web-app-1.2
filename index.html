@@ -14,66 +14,67 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1 style="color:azure">Traffic Sign Detector</h1>
+  <nav class="navbar">
+    <div class="nav-left">
+      <h1 class="app-title">Traffic Sign Detector</h1>
+    </div>
+
+    <div class="nav-right">
+      <div class="settings-pill">
+        <span class="pill-text">Safety Alerts</span>
+        <label class="switch">
+          <input type="checkbox" id="notifyToggle" onchange="toggleSafetyNotifications()">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </nav>
 
   <div class="container">
-
-    <!-- Camera Section -->
-<!-- Camera controls -->
-
-
-
-  <video id="video" width="320" height="240" autoplay></video>
-
-
-<canvas id="canvas" width="320" height="240" style="display:none;"></canvas><br>
-
-
-<button onclick="startCamera()">Start Camera</button>
-
-<button  id ="scanBtn" onclick="startTimedCameraPrediction(4000, 250)">
-  Scan (4 seconds)
-</button>
-<div id="scanOverlay" class="scan-overlay hidden">
-  <div class="scanner"></div>
-  <p>Scanning… Hold steady</p>
-</div>
-
-
-
-
-<br><br>
-
-
-    <input type="file" id="imageInput" accept="image/*" hidden> <br>
     
+    <div class="camera-wrapper">
+      <div id="frameGuide" class="frame-guide">
+        <div class="guide-box"><p>Align sign<br>Inside box</p></div>
+      </div>
+      <div id="scanOverlay" class="scan-overlay hidden">
+        <div class="scanner"></div>
+        <p>Scanning… Hold steady</p>
+      </div>
+      
+      <img id="cameraPreview" style="display:none;" />
+      <video id="video" width="320" height="240" autoplay playsinline></video>
+      <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+    </div>
 
-    <label for="imageInput" class="upload-label">Choose Image</label><br>
-    
-    <img id="preview" /><br>
-    <img id="processedPreview" alt="Processed image preview" /> 
+    <div style="display:flex; justify-content: center; gap: 10px; margin-top: 15px;">
+      <button onclick="startCamera()">Start Camera</button>
+      <button id="scanBtn" onclick="startTimedCameraPrediction(4000, 250)">Scan (4s)</button>
+    </div>
 
-    <br><button id="detectBtn" onclick="detectImage()" disabled>
-  Detect
-</button>
+    <div id="uploadBlock" class="upload-block" onclick="document.getElementById('imageInput').click()">
+      <input type="file" id="imageInput" accept="image/*" style="display:none" />
+      <div id="uploadPlaceholder" class="upload-placeholder">
+        <span class="upload-icon">📂</span>
+        <span class="upload-text-main">Click to Upload Image</span>
+      </div>
+      <img id="preview" class="upload-preview" style="display:none;" />
+    </div>
 
+    <img id="processedPreview" style="display:none;" />
 
-   <div> <h2 id="result"  style="color:azure">Prediction</h2>  </div>
+    <div class="action-buttons">
+      <button id="detectBtn" onclick="detectImage()" disabled>🔍 Detect Sign</button>
+      <button id="clearBtn" onclick="clearInput()" disabled>Clear</button>
+    </div>
 
-   
-<button onclick="stopCamera()">Stop Camera</button>
-<button onclick="refreshPage()">Refresh</button>
+    <div><h2 id="result" style="color:#22c55e; margin-top:20px;">Prediction</h2></div>
 
+    <div class="action-buttons" style="margin-top: 20px; border-top: 1px solid #333; padding-top: 20px;">
+      <button class="secondary-btn" onclick="stopCamera()">Stop Camera</button>
+      <button class="secondary-btn" onclick="refreshPage()">Refresh App</button>
+    </div>
 
-
-
-  </div>
-
-
-  
-
-
-
+  </div> <script src="safety-logic.js"></script>
   <script src="script.js"></script>
 </body>
 
