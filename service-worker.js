@@ -1,10 +1,11 @@
-const CACHE_NAME = "traffic-sign-cache-v7"; // 🔁 bump on every deploy
+const CACHE_NAME = "traffic-sign-app-v7";// 🔁 bump on every deploy
 
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
   "./script.js",
+  "./safety-logic.js",
   "./manifest.json",
   "./tf.min.js",
 
@@ -21,76 +22,48 @@ const ASSETS = [
 // ===========================
 // INSTALL (ATOMIC)
 // ===========================
-self.addEventListener("install", event => {
-  console.log("[SW] Installing");
-
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache =>
-      cache.addAll(
-        ASSETS.map(
-          url => new Request(url, { cache: "reload" })
-        )
-      )
-    )
+self.addEventListener("install", (e) => {
+  console.log("[SW] Installing new version:", CACHE_NAME);
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS);
+    })
   );
-
-  self.skipWaiting();
+  // Force this new service worker to become active immediately
+  self.skipWaiting(); 
 });
+
 
 // ===========================
 // ACTIVATE
 // ===========================
-self.addEventListener("activate", event => {
-  console.log("[SW] Activated");
-
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      )
-    )
+self.addEventListener("activate", (e) => {
+  console.log("[SW] Activated. Cleaning old caches...");
+  e.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            console.log("[SW] Deleting old cache:", key);
+            return caches.delete(key);
+          }
+        })
+      );
+    })
   );
-
-  self.clients.claim();
+  // Take control of all open tabs immediately
+  return self.clients.claim(); 
 });
+
 
 // ===========================
 // FETCH
 // ===========================
-self.addEventListener("fetch", event => {
-  if (event.request.method !== "GET") return;
-
-  // ✅ NETWORK-FIRST FOR HTML (CRITICAL)
-  if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put("./index.html", clone);
-          });
-          return response;
-        })
-        .catch(() => caches.match("./index.html"))
-    );
-    return;
-  }
-
-  // ✅ CACHE-FIRST FOR EVERYTHING ELSE
-  event.respondWith(
-    caches.match(event.request).then(cached =>
-      cached ||
-      fetch(event.request).then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache =>
-            cache.put(event.request, clone)
-          );
-        }
-        return response;
-      })
-    )
+self.addEventListener("fetch", (e) => {
+  e.respondWith(
+    caches.match(e.request).then((response) => {
+      // Return cached file if found, otherwise go to network
+      return response || fetch(e.request);
+    })
   );
 });
