@@ -128,45 +128,43 @@ async function toggleSafetyNotifications() {
 // 4. Send Function (Forced Simple Mode)
 // ===========================
 // [file: safety-logic.js]
-// Replace your existing sendSafetyNotification function with this:
+// REPLACE the entire sendSafetyNotification function with this:
 
 function sendSafetyNotification(label, confidenceStr) {
-  // 1. MASTER CHECK: If toggle is off, do nothing.
-  if (!isSafetyEnabled) {
-    console.log("Notification skipped: Safety Mode is OFF");
-    return;
-  }
+  // 1. Check if safety is on
+  if (!isSafetyEnabled) return;
 
-  // 2. Browser Permission Check
+  // 2. Check permissions
   if (Notification.permission !== "granted") {
     console.log("Notification skipped: Permission not granted");
     return;
   }
 
-  // 3. Prepare Data
+  // 3. Prepare Notification Data
   const noteData = SIGN_NOTIFICATIONS[label] || DEFAULT_NOTIFICATION;
   const title = noteData.title || `Detected: ${label}`;
-  
   const options = {
     body: `${noteData.body}\n(Confidence: ${confidenceStr})`,
     icon: './icons/icon-192.png',
     vibrate: [200, 100, 200],
-    tag: 'safety-scan-tag', 
+    tag: 'safety-scan-tag',
     renotify: true
   };
 
-  // 4. ROBUST DELIVERY: Use Service Worker if available
-  // This fixes the issue where notifications fail on Android/Deployed sites
+  console.log("Attempting to send notification:", title);
+
+  // 4. CRITICAL FIX: Send via Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.ready.then(registration => {
+      // This is the "Gold Standard" for PWA notifications
       registration.showNotification(title, options);
+      console.log("Sent via Service Worker");
     }).catch(err => {
-      console.error("SW Notification failed, trying fallback:", err);
-      // Fallback for systems where SW isn't ready
-      new Notification(title, options);
+      console.error("SW failed, trying fallback...", err);
+      new Notification(title, options); // Last resort
     });
   } else {
-    // Fallback for older browsers
+    // Fallback for browsers without Service Workers
     new Notification(title, options);
   }
 }
@@ -176,3 +174,4 @@ function sendSafetyNotification(label, confidenceStr) {
 window.toggleSafetyNotifications = toggleSafetyNotifications;
 
 window.sendSafetyNotification = sendSafetyNotification;
+
