@@ -127,6 +127,9 @@ async function toggleSafetyNotifications() {
 // ===========================
 // 4. Send Function (Forced Simple Mode)
 // ===========================
+// [file: safety-logic.js]
+// Replace your existing sendSafetyNotification function with this:
+
 function sendSafetyNotification(label, confidenceStr) {
   // 1. MASTER CHECK: If toggle is off, do nothing.
   if (!isSafetyEnabled) {
@@ -152,16 +155,24 @@ function sendSafetyNotification(label, confidenceStr) {
     renotify: true
   };
 
-  // 4. FORCE DIRECT NOTIFICATION (Bypassed Service Worker)
-  try {
-    console.log("Sending Notification:", title); 
-    new Notification(title, options); 
-  } catch (e) {
-    console.error("Notification Error:", e);
+  // 4. ROBUST DELIVERY: Use Service Worker if available
+  // This fixes the issue where notifications fail on Android/Deployed sites
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(registration => {
+      registration.showNotification(title, options);
+    }).catch(err => {
+      console.error("SW Notification failed, trying fallback:", err);
+      // Fallback for systems where SW isn't ready
+      new Notification(title, options);
+    });
+  } else {
+    // Fallback for older browsers
+    new Notification(title, options);
   }
 }
 // ===========================
 // 5. CRITICAL: EXPOSE TO HTML
 // ===========================
 window.toggleSafetyNotifications = toggleSafetyNotifications;
+
 window.sendSafetyNotification = sendSafetyNotification;
