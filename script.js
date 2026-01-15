@@ -2,11 +2,10 @@
 // PWA + TF.js Setup
 // ===========================
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js")
+  navigator.serviceWorker.register("./service-worker.js")
     .then(() => console.log("Service Worker registered"))
     .catch(() => console.log("SW registration failed"));
 }
-
 tf.env().set("WEBGL_DELETE_TEXTURE_THRESHOLD", 0);
 
 let model = null;
@@ -17,16 +16,15 @@ let labels = [];
 // ===========================
 let isScanning = false;
 let imageFromUpload = false;
+let cameraRunning = false;
 
 // ===========================
 // Camera prediction state
 // ===========================
 let predictionInterval = null;
 let predictionTimeout = null;
-let predictionCounts = {};
+let predictionStats = {};
 let lastFrameDataURL = null;
-let cameraRunning = false;
-
 
 // ===========================
 // DOM refs
@@ -81,25 +79,50 @@ async function runPrediction(img) {
     .expandDims(0)
     .expandDims(-1);
 
-  const output = model.predict(tensor);
-  const scores = await output.data();
+  const logits = model.predict(tensor);
+  const probsTensor = tf.softmax(logits);
+  const probs = await probsTensor.data();
 
-  const max = Math.max(...scores);
-  const index = scores.indexOf(max);
+  let max = probs[0];
+  let index = 0;
+
+  for (let i = 1; i < probs.length; i++) {
+    if (probs[i] > max) {
+      max = probs[i];
+      index = i;
+    }
+  }
 
   tensor.dispose();
-  output.dispose();
+  logits.dispose();
+  probsTensor.dispose();
 
-  return { label: labels[index], confidence: max };
+  return {
+    label: labels[index],
+    confidence: max
+  };
 }
 
 // ===========================
 // Camera control
 // ===========================
+// ===========================
+// 1. Safe Start Camera
+// ===========================
 async function startCamera() {
   if (cameraRunning) return;
-  
 
+  clearResult();
+  
+  // SAFETY CHECK: Only hide preview if it exists
+  const preview = document.getElementById("cameraPreview");
+  if (preview) {
+    preview.style.display = "none";
+  }
+  
+  // Enable clear button logic
+  const clearBtn = document.getElementById("clearBtn");
+  if (clearBtn) clearBtn.disabled = true;
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -111,20 +134,17 @@ async function startCamera() {
 
     cameraRunning = true;
     scanBtn.disabled = false;
-
-    // Camera-only mode → disable Detect
     imageFromUpload = false;
     detectBtn.disabled = true;
 
   } catch (err) {
-    alert("Camera access failed");
+    alert("Camera access failed or denied.");
     console.error(err);
   }
 }
 
 
 function stopCamera() {
-  // ✅ Stop active scan if running
   if (isScanning) {
     clearInterval(predictionInterval);
     clearTimeout(predictionTimeout);
@@ -143,13 +163,10 @@ function stopCamera() {
 }
 
 
-
 // ===========================
-// Timed scan (camera)
+// Timed scan (camera) - MISSING FUNCTION
 // ===========================
 async function startTimedCameraPrediction(duration = 4000, interval = 250) {
-
-  // 🚫 Camera must already be open
   if (!cameraRunning) {
     alert("Please start the camera first");
     return;
@@ -161,7 +178,7 @@ async function startTimedCameraPrediction(duration = 4000, interval = 250) {
   imageFromUpload = false;
   lockButtons();
 
-  predictionCounts = {};
+  predictionStats = {}; 
   lastFrameDataURL = null;
   clearResult();
 
@@ -170,6 +187,7 @@ async function startTimedCameraPrediction(duration = 4000, interval = 250) {
   predictionInterval = setInterval(async () => {
     if (!video.videoWidth) return;
 
+    // Capture frame
     const canvas = processImage(video);
     lastFrameDataURL = canvas.toDataURL();
 
@@ -177,81 +195,127 @@ async function startTimedCameraPrediction(duration = 4000, interval = 250) {
     img.src = lastFrameDataURL;
     await img.decode();
 
+    // Predict
     const { label, confidence } = await runPrediction(img);
 
-    predictionCounts[label] =
-      (predictionCounts[label] || 0) + confidence;
+    // Track stats
+    if (!predictionStats[label]) {
+      predictionStats[label] = { sum: 0, count: 0 };
+    }
+    predictionStats[label].sum += confidence;
+    predictionStats[label].count += 1;
 
-    setResult(`Detecting: ${label}`);
+    setResult(`Detecting: ${label} (${toPercent(confidence)})`);
   }, interval);
 
   predictionTimeout = setTimeout(stopTimedPrediction, duration);
 }
-
 // ===========================
-// Finalize camera scan
+// 2. Safe Stop Prediction
 // ===========================
 function stopTimedPrediction() {
   clearInterval(predictionInterval);
   clearTimeout(predictionTimeout);
   stopCamera();
 
-  // ✅ Confidence-weighted decision
   let finalLabel = "Unknown";
-  let maxScore = 0;
+  let bestAvgConfidence = 0;
 
-  for (const label in predictionCounts) {
-    if (predictionCounts[label] > maxScore) {
-      maxScore = predictionCounts[label];
+  for (const label in predictionStats) {
+    const avg = predictionStats[label].sum / predictionStats[label].count;
+    if (avg > bestAvgConfidence) {
+      bestAvgConfidence = avg;
       finalLabel = label;
     }
   }
 
-  setResult(`Detected: ${finalLabel}`);
+  // --- FIX START: Define confStr here ---
+  const confStr = toPercent(bestAvgConfidence);
+  // --- FIX END ---
 
-  // ✅ Vibration (safe for PWA / ignored on desktop)
+  setResult(`Detected: ${finalLabel}\nConfidence: ${confStr}`);
+
+  // Now you can safely pass it to the notification
+  sendSafetyNotification(finalLabel, confStr);
+
   if ("vibrate" in navigator) {
     navigator.vibrate([200, 100, 200]);
   }
 
-  // ✅ Freeze last camera frame
+  // SAFETY CHECK: Show last frame only if element exists
   if (lastFrameDataURL) {
-    document.getElementById("preview").src = lastFrameDataURL;
-    document.getElementById("processedPreview").src = lastFrameDataURL;
+    const preview = document.getElementById("cameraPreview");
+    if (preview) {
+      preview.src = lastFrameDataURL;
+      preview.style.display = "block";
+    }
   }
 
-  // ✅ Hide scan animation (important)
   showScanOverlay(false);
-
-  // ✅ Reset state & unlock UI
   isScanning = false;
-  unlockButtons(true, false); // Scan enabled, Detect disabled
+  unlockButtons(true, false);
+  
+  const clearBtn = document.getElementById("clearBtn");
+  if (clearBtn) clearBtn.disabled = false;
 }
 
+
+
 // ===========================
-// File upload handler
+// Finalize camera scan
 // ===========================
-document.getElementById("imageInput").addEventListener("change", e => {
+
+
+// ===========================
+// File upload handler (THE CORRECT VERSION)
+// ===========================
+function handleImageUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  imageFromUpload = true;
-  lockButtons(false, false); // ✅ Enable Detect
+  // UI References
+  const block = document.getElementById("uploadBlock");
+  const placeholder = document.getElementById("uploadPlaceholder");
+  const previewImg = document.getElementById("preview");
+  const processedImg = document.getElementById("processedPreview");
 
+  if (!block || !placeholder || !previewImg) {
+    console.error("UI elements missing");
+    return;
+  }
+  
+  document.getElementById("clearBtn").disabled = false;
+
+  imageFromUpload = true;
+  lockButtons(false, false);
+  
   clearResult();
 
   const reader = new FileReader();
   reader.onload = ev => {
     const img = new Image();
     img.onload = () => {
+      // 1. Process image for AI
       const canvas = processImage(img);
-      document.getElementById("preview").src = ev.target.result;
-      document.getElementById("processedPreview").src = canvas.toDataURL();
+      processedImg.src = canvas.toDataURL();
+
+      // 2. Update UI: Expand the block
+      previewImg.src = ev.target.result;
+      
+      // Toggle visibility
+      placeholder.style.display = "none";
+      previewImg.style.display = "block";
+      
+      // Update container style
+      block.classList.add("has-image");
+      
+      // Enable Detect button
+      unlockButtons(true, true);
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
-});
+}
 
 // ===========================
 // Detect (UPLOAD ONLY)
@@ -264,12 +328,21 @@ async function detectImage() {
 
   lockButtons();
   const { label, confidence } = await runPrediction(img);
-  setResult(`${label} (${confidence.toFixed(3)})`);
-  unlockButtons(true, false);
+  
+  // --- FIX START: Define confStr before using it ---
+  const confStr = toPercent(confidence);
+  // --- FIX END ---
+
+  setResult(`Detected: ${label}\nConfidence: ${confStr}`);
+  
+  // Now this works because confStr is defined above
+  sendSafetyNotification(label, confStr);
+
+  unlockButtons(true, true);
 }
 
 // ===========================
-// Button state helpers
+// Helpers
 // ===========================
 function lockButtons(scan = false, detect = false) {
   scanBtn.disabled = scan || isScanning;
@@ -281,9 +354,6 @@ function unlockButtons(scan = true, detect = false) {
   detectBtn.disabled = !detect;
 }
 
-// ===========================
-// Utility
-// ===========================
 function clearResult() {
   setResult("Ready to detect");
 }
@@ -292,45 +362,79 @@ function setResult(text) {
   document.getElementById("result").innerText = text;
 }
 
-function clearInput() {
-  imageFromUpload = false;
-  document.getElementById("imageInput").value = "";
-  document.getElementById("preview").src = "";
-  document.getElementById("processedPreview").src = "";
-  clearResult();
-  unlockButtons(true, false);
-}
-
-function refreshPage() {
-  location.reload();
-}
-
-// ===========================
-// Expose
-// ===========================
-window.startTimedCameraPrediction = startTimedCameraPrediction;
-window.detectImage = detectImage;
-window.clearInput = clearInput;
-window.refreshPage = refreshPage;
-
-
-
-//Helper function
-function vibrate(pattern = [100, 50, 100]) {
-  if ("vibrate" in navigator) {
-    navigator.vibrate(pattern);
-  }
-}
 
 
 function showScanOverlay(show) {
-  document.getElementById("scanOverlay")
-    .classList.toggle("hidden", !show);
+  document.getElementById("scanOverlay").classList.toggle("hidden", !show);
 }
 
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
-  });
+function toPercent(value) {
+  return (value * 100).toFixed(1) + "%";
 }
+
+// ===========================
+// Event Listener
+// ===========================
+document.addEventListener("DOMContentLoaded", () => {
+  const imageInput = document.getElementById("imageInput");
+  if (imageInput) {
+    imageInput.addEventListener("change", handleImageUpload);
+  }
+});
+
+// Expose functions to global scope for HTML buttons
+window.startCamera = startCamera;
+window.startTimedCameraPrediction = startTimedCameraPrediction;
+window.stopCamera = stopCamera;
+window.detectImage = detectImage;
+window.clearInput = clearInput;
+window.refreshPage= refreshPage;
+
+function refreshPage() {
+  window.location.reload();
+}
+
+// Make sure to expose it to the HTML
+window.refreshPage = refreshPage;
+
+// ===========================
+// 3. Safe Clear Input
+// ===========================
+function clearInput() {
+  document.getElementById("imageInput").value = "";
+
+  const block = document.getElementById("uploadBlock");
+  const placeholder = document.getElementById("uploadPlaceholder");
+  const previewImg = document.getElementById("preview");
+  const processedImg = document.getElementById("processedPreview");
+  const clearBtn = document.getElementById("clearBtn");
+  const detectBtn = document.getElementById("detectBtn");
+  const cameraPreview = document.getElementById("cameraPreview");
+
+  // Reset File Upload UI
+  if (previewImg) {
+    previewImg.style.display = "none";
+    previewImg.src = "";
+  }
+  if (placeholder) placeholder.style.display = ""; 
+  if (block) block.classList.remove("has-image");
+
+  // Reset Camera Preview (SAFETY CHECK)
+  if (cameraPreview) {
+    cameraPreview.style.display = "none";
+    cameraPreview.src = "";
+  }
+
+  // Reset State
+  imageFromUpload = false;
+  if (processedImg) processedImg.src = ""; 
+  setResult("Ready to detect");
+  
+  if (detectBtn) detectBtn.disabled = true;
+  if (clearBtn) clearBtn.disabled = true; 
+}
+
+function clearResult() {
+  document.getElementById("result").innerText = "Ready to detect";
+}
+
