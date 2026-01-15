@@ -2,7 +2,7 @@
 body {
     background: #0d0f17;
     color: #e6e6e6;
-    font-family: sans-serif,"Segoe UI", Poppins, Arial;
+    font-family: sans-serif, "Segoe UI", Poppins, Arial;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -18,143 +18,462 @@ h1 {
     letter-spacing: 1px;
     text-align: center;
     color: #4da6ff;
-    text-shadow: 0px 0px 25px #005fcc;
+    /* Removed text-shadow for a cleaner look */
 }
 
 /* ---------- CONTAINER CARD ---------- */
 .container {
+    position: relative;
     background: #161a24;
     padding: 30px 40px;
     border-radius: 16px;
     width: 450px;
-    box-shadow: 0 0 35px rgba(0, 140, 255, 0.25);
     border: 1px solid rgba(0, 153, 255, 0.3);
     text-align: center;
     transition: 0.3s ease;
+    /* Removed box-shadow (glow) */
 }
 
 .container:hover {
-    box-shadow: 0 0 50px rgba(0, 140, 255, 0.45);
-    
+    border-color: rgba(0, 153, 255, 0.6);
 }
 
-/* ---------- FILE INPUT (custom button) ---------- */
-#imageInput {
+/* =========================================
+   CAMERA SECTION
+   ========================================= */
+
+.camera-wrapper {
+    position: relative;
+    width: 320px;
+    height: 240px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+    
+    /* Solid Blue Border - No Glow */
+    border: 3px solid #2196f3;
+}
+
+#video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Last Frame Preview Image */
+#cameraPreview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 2; /* Sits above video (0) but below guide (5) */
+    background: #000;
+}
+
+/* Frame Guide (Overlay Layer) */
+.frame-guide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* The Dashed Box */
+.guide-box {
+    width: 160px;
+    height: 160px;
+    border: 2px dashed rgba(255, 255, 255, 0.6);
+    border-radius: 12px;
+    
+    /* This creates the "dimmed" background effect (functional, not decorative) */
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Watermark Text */
+.frame-guide p {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+    text-transform: uppercase;
+    line-height: 1.4;
+    margin: 0;
+    user-select: none;
+}
+
+/* Scan Overlay (Spinner Layer) */
+.scan-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    backdrop-filter: blur(3px);
+}
+
+.scan-overlay.hidden {
     display: none;
 }
 
-.upload-label {
-    background: #005fcc;
-    padding: 12px 20px;
-    border-radius: 6px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: 0.2s;
-    display: inline-block;
+.scanner {
+    width: 120px;
+    height: 120px;
+    border: 6px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #22c55e;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 12px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.scan-overlay p {
     color: white;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+
+/* =========================================
+   UPLOAD BLOCK
+   ========================================= */
+
+.upload-block {
+    width: 100%;
+    max-width: 320px;
+    min-height: 160px;
+    margin: 25px auto;
+    border: 2px dashed rgba(33, 150, 243, 0.5);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    position: relative;
+}
+
+.upload-block:hover {
+    border-color: #2196f3;
+    background: rgba(33, 150, 243, 0.08);
+    transform: translateY(-2px);
+    /* Removed hover glow */
+}
+
+.upload-block.has-image {
+    border: 2px solid #2196f3;
+    background: #000;
+    padding: 0;
+    /* Removed glow */
+}
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    color: #90caf9;
+}
+
+.upload-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.8;
+    transition: transform 0.3s ease;
+}
+
+.upload-block:hover .upload-icon {
+    transform: scale(1.1);
+    opacity: 1;
+}
+
+.upload-text-main {
+    font-size: 1.1rem;
     font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.upload-text-sub {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.upload-preview {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+}
+
+/* =========================================
+   BUTTONS
+   ========================================= */
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 15px;
+    width: 100%;
+}
+
+button {
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    
+    background: rgba(33, 150, 243, 0.1);
+    border: 1px solid #4da6ff;
+    color: #e6e6e6;
+}
+
+button:hover:not(:disabled) {
+    background: rgba(33, 150, 243, 0.3);
+    border-color: #82b1ff;
+    /* Removed glow box-shadow */
+}
+
+/* Primary Action: Detect */
+#detectBtn {
+    /* Kept gradient as requested, but removed outer glow */
+    background: linear-gradient(135deg, #2196f3, #0d47a1);
+    border: 2px solid #64b5f6;
+    color: white;
+}
+
+#detectBtn:hover:not(:disabled) {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+#detectBtn:disabled {
+    background: #1e222b;
+    color: #555;
+    border-color: transparent;
+    cursor: not-allowed;
+}
+
+/* Secondary Action: Clear */
+#clearBtn {
+    background: transparent;
     
 }
 
-.upload-label:hover {
-    background: #0078ff;
-    box-shadow: 0 0 15px rgba(0, 140, 255, 0.5);
+#clearBtn:hover:not(:disabled) {
+    background: rgba(255, 82, 82, 0.1);
+    /* Removed red glow */
 }
 
-
-
-
-/* ---------- IMAGE PREVIEW ---------- */
-#preview {
-    width: 270px;
-    height: auto;
-    margin-top: 20px;
-    border-radius: 10px;
-    border: 2px solid rgba(0, 153, 255, 0.4);
-    padding: 5px;
-    background: #0b0d14;
-    box-shadow: 0 0 20px rgba(0, 153, 255, 0.25);
+#clearBtn:disabled {
+    border-color: #333;
+    color: #444;
+    cursor: not-allowed;
 }
 
-/* ---------- DETECT BUTTON ---------- */
-button {
-    margin-top: 20px;
-    padding: 12px 32px;
-    font-size: 17px;
-    border-radius: 10px;
-    cursor: pointer;
-    border: none;
-    font-weight: 600;
-    background: linear-gradient(135deg, #007bff, #00c6ff);
+/* Tertiary Action: Stop/Refresh */
+.secondary-btn {
+    background: #1e222b;
+    border: 1px solid #333;
+    color: #aaa;
+}
+
+.secondary-btn:hover {
+    background: #2a2f3d;
     color: white;
-    transition: 0.25s ease;
 }
 
-button:hover {
-    transform: scale(1.02);
-    box-shadow: 0 0 25px rgba(0, 200, 255, 0.55);
-}
-
-/* ---------- RESULT ---------- */
+/* ---------- RESULT TEXT ---------- */
 #result {
     margin-top: 25px;
     font-size: 22px;
     font-weight: 600;
     color: #4da6ff;
-    text-shadow: 0px 0px 15px #005fcc;
+    /* Removed text-shadow */
 }
 
+/* Hidden inputs */
+#imageInput {
+    display: none;
+}
 
-
-#video {
+/* ===========================
+   1. The Layout Wrapper
+   =========================== */
+.app-wrapper {
+  position: relative;       /* Creates the anchor point */
   width: 100%;
-  max-width: 320px;
-  height: auto;
-  border-radius: 8px;
-  border: 2px solid rgba(255, 255, 255, 0.6);
-  background: #0b0d14;
+  max-width: 480px;         /* Match your app's width */
+  margin: 0 auto;           /* Centers everything on screen */
 }
 
-
-.scan-overlay {
+/* ===========================
+   2. Floating Settings (Outside Container)
+   =========================== */
+.settings-container {
   position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  top: -10px;               /* Floats slightly above/inside the top edge */
+  right: 10px;              /* Pinned to the right */
+  z-index: 999;             /* Sits ABOVE the camera/container */
+  width: auto;
+}
+
+.settings-card {
+  background: rgba(255, 255, 255, 0.9); /* High visibility glass */
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  padding: 6px 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2); /* nice shadow */
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  z-index: 10;
-  pointer-events: auto;
+  gap: 10px;
 }
 
-.scan-overlay.hidden {
-  display: none;
-  pointer-events: none; /* ✅ IMPORTANT */
+.settings-card strong {
+  font-size: 0.8rem;
+  color: #333;
+  margin: 0;
 }
 
+/* ===========================
+   3. Toggle Switch UI
+   =========================== */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;  /* Compact width */
+  height: 22px; /* Compact height */
+  margin: 0;
+}
 
-.scanner {
-  width: 120px;
-  height: 120px;
-  border: 6px solid rgba(255,255,255,0.3);
-  border-top-color: #22c55e;
+.switch input { opacity: 0; width: 0; height: 0; }
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px; 
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 12px;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+input:checked + .slider {
+  background-color: #22c55e;
 }
 
-.scan-overlay p {
-  color: white;
-  font-size: 1rem;
-  letter-spacing: 0.5px;
+input:checked + .slider:before {
+  transform: translateX(18px);
 }
 
+/* ===========================
+   NAVBAR STYLING (Gemini Style)
+   =========================== */
+body {
+  margin: 0;
+  padding: 0; /* Remove default padding so navbar touches edges */
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between; /* Pushes Left/Right to edges */
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #0d0f17;
+  /*border: 1px solid rgba(0, 153, 255, 0.3);*/
+ /* border-bottom: 1px solid  #141723;*/     /*#FFAA00*/
+  width: 100%;
+  box-sizing: border-box; /* Ensures padding doesn't break width */
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Left Side: Title */
+.app-title {
+  font-size: 1.2rem;
+  margin: 0;
+  color: #E3E3E3;
+  font-weight: 450;
+  white-space: nowrap; /* Prevents wrapping on small screens */
+}
+
+/* Right Side: Settings Pill */
+.settings-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background:  rgba(0, 153, 255, 0.3);/* Subtle glass effect */
+  padding: 6px 12px;
+  border-radius: 30px;
+  border: 1px solid #0099FF
+}
+
+.pill-text {
+  color: #ddd;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Mobile Tweaks */
+@media (max-width: 400px) {
+  .app-title {
+    font-size: 1rem; /* Smaller text for small phones */
+  }
+  .pill-text {
+    display: none; /* Hide text "Safety Alerts" on very small screens, show only switch */
+  }
+  .navbar {
+    padding: 10px 15px;
+  }
+}
+
+/* ===========================
+   EXISTING CONTAINER ADJUSTMENT
+   =========================== */
 .container {
-  position: relative;   /* ✅ REQUIRED */
+  margin-top: 20px; /* Add space so it doesn't hide behind navbar */
+  /* Remove old absolute positioning if any */
 }
 
+/* Switch UI (Keep your existing switch styles) */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  margin: 0;
+}
+/* ... rest of switch styles ... */
