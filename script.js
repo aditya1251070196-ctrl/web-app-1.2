@@ -2,7 +2,7 @@
 // PWA + TF.js Setup
 // ===========================
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').then((registration) => {
+  navigator.serviceWorker.register('./service-worker.js').then((registration) => {
     // Optional: Log registration success
     console.log('SW Registered');
   });
@@ -565,4 +565,5 @@ async function hardRefresh() {
     }
   }
 }
+
 
