@@ -213,6 +213,8 @@ async function startTimedCameraPrediction(duration = 4000, interval = 250) {
 // ===========================
 // 2. Safe Stop Prediction
 // ===========================
+// [file: script.js] - Replace the existing stopTimedPrediction function
+
 function stopTimedPrediction() {
   clearInterval(predictionInterval);
   clearTimeout(predictionTimeout);
@@ -221,6 +223,7 @@ function stopTimedPrediction() {
   let finalLabel = "Unknown";
   let bestAvgConfidence = 0;
 
+  // Calculate best result from the scan
   for (const label in predictionStats) {
     const avg = predictionStats[label].sum / predictionStats[label].count;
     if (avg > bestAvgConfidence) {
@@ -229,26 +232,29 @@ function stopTimedPrediction() {
     }
   }
 
-  // --- FIX START: Define confStr here ---
   const confStr = toPercent(bestAvgConfidence);
-  // --- FIX END ---
 
-  setResult(`Detected: ${finalLabel}\nConfidence: ${confStr}`);
-
-  // Now you can safely pass it to the notification
+  //setResult(`Detected: ${finalLabel}\nConfidence: ${confStr}`);
+  showMatchResult(finalLabel, confStr);
+  // Send Notification
   sendSafetyNotification(finalLabel, confStr);
 
   if ("vibrate" in navigator) {
     navigator.vibrate([200, 100, 200]);
   }
 
-  // SAFETY CHECK: Show last frame only if element exists
+  // Show the last frame in the preview area
   if (lastFrameDataURL) {
     const preview = document.getElementById("cameraPreview");
     if (preview) {
       preview.src = lastFrameDataURL;
       preview.style.display = "block";
     }
+
+    // --- NEW: Add to History ---
+    // We pass the captured camera frame (lastFrameDataURL)
+    addToHistory(finalLabel, confStr);
+    // ---------------------------
   }
 
   showScanOverlay(false);
@@ -320,6 +326,8 @@ function handleImageUpload(e) {
 // ===========================
 // Detect (UPLOAD ONLY)
 // ===========================
+// [file: script.js] - Replace the existing detectImage function
+
 async function detectImage() {
   if (!imageFromUpload || isScanning) return;
 
@@ -329,21 +337,26 @@ async function detectImage() {
   lockButtons();
   const { label, confidence } = await runPrediction(img);
   
-  // --- FIX START: Define confStr before using it ---
   const confStr = toPercent(confidence);
-  // --- FIX END ---
 
-  setResult(`Detected: ${label}\nConfidence: ${confStr}`);
-  
-  // Now this works because confStr is defined above
+  //setResult(`Detected: ${label}\nConfidence: ${confStr}`);
+  showMatchResult(label, confStr);
   sendSafetyNotification(label, confStr);
+
+  // --- NEW: Add to History ---
+  // We use the original 'preview' (high quality) instead of 'processedPreview' (blurry)
+  const displayImage = document.getElementById("preview").src;
+  addToHistory(label, confStr);
+  // ---------------------------
 
   unlockButtons(true, true);
 }
 
+
 // ===========================
-// Helpers
+// Helpers & UI Logic
 // ===========================
+
 function lockButtons(scan = false, detect = false) {
   scanBtn.disabled = scan || isScanning;
   detectBtn.disabled = detect || !imageFromUpload || isScanning;
@@ -354,15 +367,20 @@ function unlockButtons(scan = true, detect = false) {
   detectBtn.disabled = !detect;
 }
 
+// --- FIX 1: Updated to match your new index.html ---
 function clearResult() {
-  setResult("Ready to detect");
+  // Hide the result container instead of trying to clear text
+  const container = document.getElementById("resultContainer");
+  if (container) {
+    container.style.display = "none";
+  }
 }
 
-function setResult(text) {
-  document.getElementById("result").innerText = text;
+// Note: 'setResult' is no longer needed because we use showMatchResult, 
+// but we keep an empty one just in case old code calls it.
+function setResult(text) { 
+  console.log("Status:", text); 
 }
-
-
 
 function showScanOverlay(show) {
   document.getElementById("scanOverlay").classList.toggle("hidden", !show);
@@ -373,7 +391,71 @@ function toPercent(value) {
 }
 
 // ===========================
-// Event Listener
+// Sidebar & History Logic
+// ===========================
+
+function toggleSidebar() {
+  const sidebar = document.getElementById("historySidebar");
+  sidebar.classList.toggle("open");
+}
+
+// --- FIX 2: Corrected History Function (Standard Image Version) ---
+function addToHistory(label, confidence) {
+  const list = document.getElementById("sidebarList");
+  if (!list) return;
+
+  // 1. Get Data from safety-logic.js (Standard Reference)
+  const data = SIGN_NOTIFICATIONS[label] || SIGN_NOTIFICATIONS["default"];
+  const standardImage = data.img || "./icons/icon-192.png"; 
+  const description = data.body;
+  const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // 2. Create Card
+  const item = document.createElement("div");
+  item.className = "history-item";
+
+  item.innerHTML = `
+    <img src="${standardImage}" class="history-thumb" alt="Reference">
+    <div class="history-details">
+      <span class="history-label">${data.title}</span>
+      <span class="history-match-rate">Match: ${confidence}</span>
+      <span class="history-time">${timeStr}</span>
+    </div>
+  `;
+
+  // 3. Add to list
+  list.insertBefore(item, list.firstChild);
+  if (list.children.length > 10) list.removeChild(list.lastChild);
+}
+
+// ===========================
+// Result Display Logic
+// ===========================
+
+function showMatchResult(label, confidenceStr) {
+  const container = document.getElementById("resultContainer");
+  const labelEl = document.getElementById("resultLabel");
+  const confEl = document.getElementById("resultConfidence");
+  const imgEl = document.getElementById("refImage");
+  const descEl = document.getElementById("refDescription");
+
+  // 1. Get Data from Safety Logic
+  const data = SIGN_NOTIFICATIONS[label] || SIGN_NOTIFICATIONS["default"];
+
+  // 2. Update Text
+  labelEl.innerText = data.title; // Show nice title (e.g. "Speed Zone 50")
+  confEl.innerText = `Confidence: ${confidenceStr}`;
+  descEl.innerText = data.body;
+
+  // 3. Update Image
+  imgEl.src = data.img || "./icons/icon-192.png"; 
+
+  // 4. Show the container
+  container.style.display = "block";
+}
+
+// ===========================
+// Initialization
 // ===========================
 document.addEventListener("DOMContentLoaded", () => {
   const imageInput = document.getElementById("imageInput");
@@ -382,59 +464,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Expose functions to global scope for HTML buttons
+// Expose functions to HTML
 window.startCamera = startCamera;
 window.startTimedCameraPrediction = startTimedCameraPrediction;
 window.stopCamera = stopCamera;
 window.detectImage = detectImage;
 window.clearInput = clearInput;
-window.refreshPage= refreshPage;
-
-function refreshPage() {
-  window.location.reload();
-}
-
-// Make sure to expose it to the HTML
 window.refreshPage = refreshPage;
-
-// ===========================
-// 3. Safe Clear Input
-// ===========================
-function clearInput() {
-  document.getElementById("imageInput").value = "";
-
-  const block = document.getElementById("uploadBlock");
-  const placeholder = document.getElementById("uploadPlaceholder");
-  const previewImg = document.getElementById("preview");
-  const processedImg = document.getElementById("processedPreview");
-  const clearBtn = document.getElementById("clearBtn");
-  const detectBtn = document.getElementById("detectBtn");
-  const cameraPreview = document.getElementById("cameraPreview");
-
-  // Reset File Upload UI
-  if (previewImg) {
-    previewImg.style.display = "none";
-    previewImg.src = "";
-  }
-  if (placeholder) placeholder.style.display = ""; 
-  if (block) block.classList.remove("has-image");
-
-  // Reset Camera Preview (SAFETY CHECK)
-  if (cameraPreview) {
-    cameraPreview.style.display = "none";
-    cameraPreview.src = "";
-  }
-
-  // Reset State
-  imageFromUpload = false;
-  if (processedImg) processedImg.src = ""; 
-  setResult("Ready to detect");
-  
-  if (detectBtn) detectBtn.disabled = true;
-  if (clearBtn) clearBtn.disabled = true; 
-}
-
-function clearResult() {
-  document.getElementById("result").innerText = "Ready to detect";
-}
-
+window.toggleSidebar = toggleSidebar;
