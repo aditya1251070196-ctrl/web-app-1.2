@@ -8,27 +8,39 @@
  <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#2196f3">
 
- <link rel="icon" type="image/png" href="icons/icon-192.png">
-
+ 
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <nav class="navbar">
-    <div class="nav-left">
-      <h1 class="app-title">Traffic Sign Detector</h1>
-    </div>
+  <div class="nav-left" style="display: flex;">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <h1 class="app-title">Traffic Sign Detector</h1>
+  </div>
 
-    <div class="nav-right">
-      <div class="settings-pill">
-        <span class="pill-text">Safety Alerts</span>
-        <label class="switch">
-          <input type="checkbox" id="notifyToggle" onchange="toggleSafetyNotifications()">
-          <span class="slider"></span>
-        </label>
-      </div>
+  <div class="nav-right">
+    <div class="settings-pill">
+      <span class="pill-text">Safety Alerts</span>
+      <label class="switch">
+        <input type="checkbox" id="notifyToggle" onchange="toggleSafetyNotifications()">
+        <span class="slider"></span>
+      </label>
     </div>
-  </nav>
+  </div>
+</nav>
+
+<aside id="historySidebar" class="sidebar">
+  <div class="sidebar-header">
+    <h2>History</h2>
+    <button class="close-btn" onclick="toggleSidebar()">×</button>
+  </div>
+  <div class="sidebar-content">
+    <p class="sidebar-subtitle">Recent Detections</p>
+    <div id="sidebarList" class="sidebar-list"></div>
+  </div>
+</aside>
 
   <div class="container">
     
@@ -67,14 +79,32 @@
       <button id="clearBtn" onclick="clearInput()" disabled>Clear</button>
     </div>
 
-    <div><h2 id="result" style="color:#22c55e; margin-top:20px;">Prediction</h2></div>
+    <div id="resultContainer" class="result-container" style="display: none;">
+  
+  <h2 id="resultLabel" class="result-label">Detected Sign</h2>
+  <p id="resultConfidence" class="result-conf">Confidence: --%</p>
+
+  <div class="comparison-box">
+    <p class="sub-label">Official Sign:</p>
+    <img id="refImage" src="./icons/icon-192.png" class="ref-image" alt="Standard Version">
+  </div>
+
+  <div class="info-box">
+    <p id="refDescription">Safety instruction will appear here.</p>
+  </div>
+
+</div>
+
+    
 
     <div class="action-buttons" style="margin-top: 20px; border-top: 1px solid #333; padding-top: 20px;">
       <button class="secondary-btn" onclick="stopCamera()">Stop Camera</button>
       <button class="secondary-btn" onclick="refreshPage()">Refresh App</button>
     </div>
 
-  </div> <script src="safety-logic.js"></script>
+  </div> 
+  
+  <script src="safety-logic.js"></script>
   <script src="script.js"></script>
 </body>
 
