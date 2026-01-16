@@ -1,10 +1,21 @@
 // ===========================
 // PWA + TF.js Setup
 // ===========================
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./service-worker.js")
-    .then(() => console.log("Service Worker registered"))
-    .catch(() => console.log("SW registration failed"));
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then((registration) => {
+    // Optional: Log registration success
+    console.log('SW Registered');
+  });
+
+  // 🔄 THE FIX: Listen for the "controlling" service worker to change
+  // This triggers when the new SW runs clients.claim()
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload(); // Reloads the page to show the new version
+    }
+  });
 }
 tf.env().set("WEBGL_DELETE_TEXTURE_THRESHOLD", 0);
 
@@ -470,5 +481,88 @@ window.startTimedCameraPrediction = startTimedCameraPrediction;
 window.stopCamera = stopCamera;
 window.detectImage = detectImage;
 window.clearInput = clearInput;
-window.refreshPage = refreshPage;
+window.hardRefresh = hardRefresh;
 window.toggleSidebar = toggleSidebar;
+
+function clearInput() {
+  // 1. Reset the actual file input
+  const fileInput = document.getElementById("imageInput");
+  if (fileInput) {
+    fileInput.value = ""; 
+  }
+
+  // 2. Reset the Upload UI Elements
+  const block = document.getElementById("uploadBlock");
+  const placeholder = document.getElementById("uploadPlaceholder");
+  const previewImg = document.getElementById("preview");
+  const processedImg = document.getElementById("processedPreview");
+
+  if (block) block.classList.remove("has-image");
+  if (placeholder) placeholder.style.display = "flex"; 
+  if (previewImg) {
+    previewImg.style.display = "none";
+    previewImg.src = ""; 
+  }
+  if (processedImg) processedImg.src = "";
+
+  // 3. Reset the Camera Preview (The Fix)
+  const cameraPreview = document.getElementById("cameraPreview");
+  if (cameraPreview) {
+    cameraPreview.style.display = "none";
+    cameraPreview.src = "";
+  }
+
+  // 4. Hide the result container 
+  const resultContainer = document.getElementById("resultContainer");
+  if (resultContainer) {
+    resultContainer.style.display = "none";
+  }
+
+  // 5. Reset Logic State
+  imageFromUpload = false;
+
+  // 6. Reset Buttons
+  const detectBtn = document.getElementById("detectBtn");
+  if (detectBtn) detectBtn.disabled = true; 
+  
+  // Disable the clear button itself since everything is cleared
+  const clearBtn = document.getElementById("clearBtn");
+  if (clearBtn) clearBtn.disabled = true;
+
+  console.log("Input, camera preview, and results cleared.");
+}
+
+// ===========================
+// Utility: Hard Refresh (Nuclear Option)
+// ===========================
+async function hardRefresh() {
+  if (confirm("This will clear all stored data and fetch the latest version. Continue?")) {
+    try {
+      // 1. Unregister Service Worker
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+          await registration.unregister();
+        }
+      }
+
+      // 2. Delete All Caches
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(
+          keys.map(key => caches.delete(key))
+        );
+      }
+
+      // 3. Force Reload
+      // window.location.reload(true) is deprecated in some browsers but still works in many.
+      // Since we cleared the cache above, a normal reload is effectively a hard reload now.
+      window.location.reload(); 
+
+    } catch (error) {
+      console.error("Hard refresh failed:", error);
+      alert("Error clearing cache. Please manually clear browser data.");
+    }
+  }
+}
+
