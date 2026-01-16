@@ -365,6 +365,7 @@ button:hover:not(:disabled) {
   width: 40px;  /* Compact width */
   height: 22px; /* Compact height */
   margin: 0;
+  z-index: 2000;
 }
 
 .switch input { opacity: 0; width: 0; height: 0; }
@@ -376,6 +377,7 @@ button:hover:not(:disabled) {
   background-color: #ccc;
   transition: .4s;
   border-radius: 34px;
+  z-index:1 ;
 }
 
 .slider:before {
@@ -477,3 +479,203 @@ body {
   margin: 0;
 }
 /* ... rest of switch styles ... */
+
+/* [file: style.css] Add to the bottom */
+
+/* [file: style.css] Add to bottom */
+
+/* --- MENU BUTTON --- */
+.menu-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  margin-right: 15px;
+  padding: 0 5px;
+  transition: 0.2s;
+}
+.menu-btn:hover { color: #4da6ff; }
+
+/* --- SIDEBAR CONTAINER --- */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -280px; /* Hidden by default */
+  width: 280px;
+  height: 100%;
+  background: rgba(13, 15, 23, 0.95); /* Deep dark background */
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2000; /* On top of everything */
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.open {
+  left: 0; /* Slide in */
+}
+
+/* --- SIDEBAR HEADER --- */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #4da6ff;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+/* --- SIDEBAR LIST --- */
+.sidebar-content {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.sidebar-subtitle {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #666;
+  margin-bottom: 15px;
+  letter-spacing: 1px;
+}
+
+/* --- HISTORY ITEM CARDS --- */
+.history-item {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  border: 1px solid transparent;
+  transition: 0.2s;
+  cursor: default;
+}
+
+.history-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(77, 166, 255, 0.3);
+}
+
+.history-thumb {
+  width: 50px; 
+  height: 50px;
+  min-width: 50px; /* Forces size */
+  background: rgba(255,255,255,0.1); /* bg in case image is transparent */
+}
+
+.history-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-label {
+  font-size: 0.9rem;
+  color: #eee;
+  font-weight: 500;
+}
+
+.history-time {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 2px;
+}
+
+.history-match-rate {
+  font-size: 0.75rem;
+  color: #4da6ff; /* Blue accent */
+  margin-top: 2px;
+  display: block;
+}
+
+.history-desc {
+  font-size: 0.7rem;
+  color: #aaaaaa; /* Softer gray text */
+  margin: 4px 0;
+  line-height: 1.3;
+  border-left: 2px solid #333; /* Visual divider */
+  padding-left: 6px;
+}
+
+
+/* [file: style.css] Add to bottom */
+
+.result-container {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 153, 255, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+  text-align: center;
+  animation: fadeIn 0.5s ease;
+}
+
+.result-label {
+  color: #22c55e; /* Green */
+  margin: 0;
+  font-size: 1.5rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.result-conf {
+  color: #8899a6;
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.comparison-box {
+  margin: 15px 0;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.sub-label {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin: 0 0 5px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ref-image {
+  width: 100px; /* Adjust size as needed */
+  height: 100px;
+  object-fit: contain;
+}
+
+.info-box {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+#refDescription {
+  color: #e3e3e3;
+  font-size: 1rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
