@@ -1,6 +1,7 @@
 // ===========================
 // PWA + TF.js Setup
 // ===========================
+// Check if Service Workers are supported
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./service-worker.js').then((registration) => {
     // Optional: Log registration success
@@ -226,6 +227,9 @@ async function startTimedCameraPrediction(duration = 4000, interval = 250) {
 // ===========================
 // [file: script.js] - Replace the existing stopTimedPrediction function
 
+// ===========================
+// 2. Safe Stop Prediction (Updated with Threshold)
+// ===========================
 function stopTimedPrediction() {
   clearInterval(predictionInterval);
   clearTimeout(predictionTimeout);
@@ -243,29 +247,33 @@ function stopTimedPrediction() {
     }
   }
 
+  // 🛑 THRESHOLD CHECK (New Logic)
+  // If confidence is less than 60% (0.6), force result to "Unknown"
+  if (bestAvgConfidence < 0.60) {
+    finalLabel = "Unknown";
+  }
+
   const confStr = toPercent(bestAvgConfidence);
 
-  //setResult(`Detected: ${finalLabel}\nConfidence: ${confStr}`);
   showMatchResult(finalLabel, confStr);
-  // Send Notification
-  sendSafetyNotification(finalLabel, confStr);
+  
+  // Only send notification if it's NOT unknown (optional, prevents spam)
+  if (finalLabel !== "Unknown") {
+    sendSafetyNotification(finalLabel, confStr);
+  }
 
   if ("vibrate" in navigator) {
     navigator.vibrate([200, 100, 200]);
   }
 
-  // Show the last frame in the preview area
   if (lastFrameDataURL) {
     const preview = document.getElementById("cameraPreview");
     if (preview) {
       preview.src = lastFrameDataURL;
       preview.style.display = "block";
     }
-
-    // --- NEW: Add to History ---
-    // We pass the captured camera frame (lastFrameDataURL)
+    // Add to history
     addToHistory(finalLabel, confStr);
-    // ---------------------------
   }
 
   showScanOverlay(false);
@@ -275,7 +283,6 @@ function stopTimedPrediction() {
   const clearBtn = document.getElementById("clearBtn");
   if (clearBtn) clearBtn.disabled = false;
 }
-
 
 
 // ===========================
@@ -339,6 +346,9 @@ function handleImageUpload(e) {
 // ===========================
 // [file: script.js] - Replace the existing detectImage function
 
+// ===========================
+// Detect (UPLOAD ONLY - Updated with Threshold)
+// ===========================
 async function detectImage() {
   if (!imageFromUpload || isScanning) return;
 
@@ -346,19 +356,27 @@ async function detectImage() {
   if (!img.src) return;
 
   lockButtons();
-  const { label, confidence } = await runPrediction(img);
+  
+  // 1. Run Prediction
+  let { label, confidence } = await runPrediction(img);
+  
+  // 🛑 THRESHOLD CHECK (New Logic)
+  if (confidence < 0.60) {
+    label = "Unknown";
+  }
   
   const confStr = toPercent(confidence);
 
-  //setResult(`Detected: ${label}\nConfidence: ${confStr}`);
+  // 2. Show Results
   showMatchResult(label, confStr);
-  sendSafetyNotification(label, confStr);
+  
+  if (label !== "Unknown") {
+    sendSafetyNotification(label, confStr);
+  }
 
-  // --- NEW: Add to History ---
-  // We use the original 'preview' (high quality) instead of 'processedPreview' (blurry)
+  // 3. Add to History
   const displayImage = document.getElementById("preview").src;
   addToHistory(label, confStr);
-  // ---------------------------
 
   unlockButtons(true, true);
 }
@@ -484,6 +502,15 @@ window.clearInput = clearInput;
 window.hardRefresh = hardRefresh;
 window.toggleSidebar = toggleSidebar;
 
+// ===========================
+// Utility: Clear/Reset
+// ===========================
+// ===========================
+// Utility: Clear/Reset (Fixed)
+// ===========================
+// ===========================
+// Utility: Clear/Reset (Fixed)
+// ===========================
 function clearInput() {
   // 1. Reset the actual file input
   const fileInput = document.getElementById("imageInput");
@@ -565,6 +592,3 @@ async function hardRefresh() {
     }
   }
 }
-
-
-
