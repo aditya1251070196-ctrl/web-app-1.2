@@ -679,3 +679,39 @@ body {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ===========================
+   Mobile Responsiveness Fixes
+   =========================== */
+
+/* 1. Ensure the container doesn't overflow */
+.container {
+    width: 100%;
+    max-width: 600px; /* Keep it nice on desktop */
+    margin: 0 auto;
+    padding: 10px;    /* Give it some breathing room */
+    box-sizing: border-box; /* Includes padding in width calculation */
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+/* 2. Force the video to shrink if the screen is too small */
+video, canvas, .camera-wrapper {
+    width: 100% !important; /* Overrides the width="320" attribute */
+    height: auto !important;
+    max-width: 100%;
+    border-radius: 12px; /* Optional: Looks nicer */
+}
+
+/* 3. Make buttons wrap if they get too squeezed */
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap; /* Allows buttons to stack on very small screens */
+    gap: 10px;
+    justify-content: center;
+}
+
+/* 4. Ensure images don't explode the layout */
+img {
+    max-width: 100%;
+    height: auto;
+}
