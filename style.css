@@ -87,8 +87,8 @@ h1 {
 
 /* The Dashed Box */
 .guide-box {
-    width: 160px;
-    height: 160px;
+    width: 350px;
+    height: 300px;
     border: 2px dashed rgba(255, 255, 255, 0.6);
     border-radius: 12px;
     
