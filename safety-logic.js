@@ -2,6 +2,12 @@
 // 🔔 Safety Notification Configuration
 // ===========================
 const SIGN_NOTIFICATIONS = {
+
+  "Unknown": { 
+    "title": "❓ Unknown Sign", 
+    "body": "Confidence is too low (<60%). Please rescan or move closer.",
+    "img": "./icons/icon-192.png" // Uses the app logo as a placeholder
+  },
   // --- Speed Limits ---
   "Speed limit (20km/h)": { "title": "Speed Zone: 20km/h", "body": "⚠️ Slow down. Strictly maintain 20 km/h or less.",
     "img": "./images/reference/speed_20.jpg"
@@ -264,3 +270,4 @@ function sendSafetyNotification(label, confidenceStr) {
 // ===========================
 window.toggleSafetyNotifications = toggleSafetyNotifications;
 window.sendSafetyNotification = sendSafetyNotification;
+
