@@ -4,24 +4,81 @@
   <meta charset="UTF-8">
   <title>Traffic Sign Detector</title>
  <script src="./tf.min.js"></script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
- 
+
  <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#2196f3">
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
  
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+             
+ <div id="landing-page" class="landing-scroll-container">
+    
+    <header class="landing-hero">
+      <div class="hero-content">
+        <img src="./icons/icon-512.png" alt="Traffic Eye Logo" class="hero-logo">
+        <h1 class="hero-title">Traffic Eye</h1>
+        <p class="hero-subtitle">Your Intelligent Co-Pilot for Safer Roads</p>
+        <button class="cta-btn primary" onclick="enterApp()">Launch App</button>
+        <p class="scroll-hint">Scroll to learn more ↓</p>
+      </div>
+    </header>
+
+    <section class="landing-section features-section">
+      <h2 style="color:#1e3c72;">Why use Traffic Eye?</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">👁️</span>
+          <h3>AI Vision</h3>
+          <p>Real-time detection of 40+ traffic signs using advanced machine learning.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🗣️</span>
+          <h3>Voice Assistant</h3>
+          <p>Hear safety instructions out loud so you can keep your eyes on the road.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <h3>Offline Ready</h3>
+          <p>Works 100% offline. No internet required after the first load.</p>
+        </div>
+        
+      </div>
+    </section>
+
+    <section class="landing-section caution-section">
+      <h2>⚠️ Safety First</h2>
+      <div class="caution-box">
+        <ul>
+          <li><strong>Assistant, Not Driver:</strong> This app is a support tool. Always rely on your own judgment.</li>
+          <li><strong>Accuracy:</strong> AI predictions may vary based on lighting and weather conditions.</li>
+          <li><strong>Distractions:</strong> Do not operate the app controls while the vehicle is moving.</li>
+        </ul>
+      </div>
+      <button class="cta-btn secondary" onclick="enterApp()">I Understand - Start Driving</button>
+    </section>
+
+    <footer class="landing-footer">
+      <p>&copy; 2024 Traffic Eye Development Team.</p>
+      <p>Designed for Road Safety Initiatives.</p>
+    </footer>
+
+  </div>
+
+
+
+<div id="main-app" style="display: none;">  
   <nav class="navbar">
   <div class="nav-left" style="display: flex;">
     <button class="menu-btn" onclick="toggleSidebar()">☰</button>
     <h1 class="app-title">Traffic Sign Detector</h1>
   </div>
 
- <div class="nav-right">
+  <div class="nav-right">
     <div class="settings-pill">
       <span class="pill-text">Safety Alerts</span>
       <label class="switch">
@@ -38,33 +95,31 @@
       </label>
     </div>
   </div>
-</nav>
+ </nav>
 
-<aside id="historySidebar" class="sidebar">
+ <aside id="historySidebar" class="sidebar">
   <div class="sidebar-header">
     <h2>History</h2>
-    <button class="close-btn" onclick="toggleSidebar()">×</button>
+    <button class="close-btn" onclick="toggleSidebar()"></button>
   </div>
   <div class="sidebar-content">
     <p class="sidebar-subtitle">Recent Detections</p>
     <div id="sidebarList" class="sidebar-list"></div>
   </div>
-</aside>
+ </aside>
 
   <div class="container">
     
     <div class="camera-wrapper">
-      <div id="frameGuide" class="frame-guide">
-        <div class="guide-box"><p>Align sign<br>Inside box</p></div>
-      </div>
+      
       <div id="scanOverlay" class="scan-overlay hidden">
         <div class="scanner"></div>
         <p>Scanning… Hold steady</p>
       </div>
       
       <img id="cameraPreview" style="display:none;" />
-      <video id="video" width="320" height="240" autoplay playsinline></video>
-      <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+      <video id="video"  autoplay playsinline></video>
+      <canvas id="canvas"  style="display:none;"></canvas>
     </div>
 
     <div style="display:flex; justify-content: center; gap: 10px; margin-top: 15px;">
@@ -102,7 +157,7 @@
     <p id="refDescription">Safety instruction will appear here.</p>
   </div>
 
-</div>
+ </div>
 
     
 
@@ -112,7 +167,8 @@
     </div>
 
   </div> 
-  
+
+</div>  
   <script src="safety-logic.js"></script>
   <script src="script.js"></script>
 </body>
