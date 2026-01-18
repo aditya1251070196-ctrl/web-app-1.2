@@ -21,11 +21,19 @@
     <h1 class="app-title">Traffic Sign Detector</h1>
   </div>
 
-  <div class="nav-right">
+ <div class="nav-right">
     <div class="settings-pill">
       <span class="pill-text">Safety Alerts</span>
       <label class="switch">
         <input type="checkbox" id="notifyToggle" onchange="toggleSafetyNotifications()">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="settings-pill" style="margin-top: 5px;">
+      <span class="pill-text">Voice Assist</span>
+      <label class="switch">
+        <input type="checkbox" id="voiceToggle" onchange="toggleVoice(this)">
         <span class="slider"></span>
       </label>
     </div>
