@@ -256,6 +256,8 @@ function stopTimedPrediction() {
   const confStr = toPercent(bestAvgConfidence);
 
   showMatchResult(finalLabel, confStr);
+
+  speakSign(finalLabel);
   
   // Only send notification if it's NOT unknown (optional, prevents spam)
   if (finalLabel !== "Unknown") {
@@ -369,6 +371,8 @@ async function detectImage() {
 
   // 2. Show Results
   showMatchResult(label, confStr);
+  
+  speakSign(label);
   
   if (label !== "Unknown") {
     sendSafetyNotification(label, confStr);
@@ -592,3 +596,52 @@ async function hardRefresh() {
     }
   }
 }
+
+// ===========================
+// 🗣️ Voice Assistant (Updated)
+// ===========================
+let isVoiceEnabled = false; 
+
+function speakSign(label) {
+  // 1. Check if voice is enabled
+  if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
+
+  // 2. Stop any current speech
+  window.speechSynthesis.cancel();
+
+  let textToSay = "";
+
+  if (label === "Unknown") {
+    textToSay = "Unknown sign detected. Please rescan.";
+  } else {
+    // 3. Fetch the detailed instruction from safety-logic.js
+    // We access the global SIGN_NOTIFICATIONS object
+    const noteData = SIGN_NOTIFICATIONS[label];
+
+    if (noteData && noteData.body) {
+      // Combine the Name + The Safety Instruction
+      // Example: "Speed limit 50. Standard urban limit. Watch for cross traffic."
+      textToSay = `${label}. ${noteData.body}`;
+    } else {
+      // Fallback if description is missing
+      textToSay = `Caution. ${label}.`;
+    }
+  }
+
+  // 4. Speak
+  const utterance = new SpeechSynthesisUtterance(textToSay);
+  utterance.lang = 'en-US'; 
+  utterance.rate = 1.0; 
+  window.speechSynthesis.speak(utterance);
+}
+
+function toggleVoice(checkbox) {
+  isVoiceEnabled = checkbox.checked;
+  if (isVoiceEnabled) {
+    const warmUp = new SpeechSynthesisUtterance("Voice guidance active.");
+    window.speechSynthesis.speak(warmUp);
+  } else {
+    window.speechSynthesis.cancel();
+  }
+}
+window.toggleVoice = toggleVoice;
