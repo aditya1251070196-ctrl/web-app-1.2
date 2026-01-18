@@ -1,4 +1,4 @@
-const CACHE_NAME = "traffic-sign-app-v21";// 🔁 bump on every deploy
+const CACHE_NAME = "traffic-sign-app-v22";// 🔁 bump on every deploy
 
 const ASSETS = [
   "./",
@@ -111,6 +111,7 @@ self.addEventListener("fetch", (e) => {
     })
   );
 });
+
 
 
 
