@@ -645,3 +645,30 @@ function toggleVoice(checkbox) {
   }
 }
 window.toggleVoice = toggleVoice;
+
+// ===========================
+// Landing Page Logic
+// ===========================
+function enterApp() {
+  const landing = document.getElementById("landing-page");
+  const app = document.getElementById("main-app");
+  
+  // Visual Transition
+  if(landing) {
+    landing.style.opacity = '0';
+    landing.style.transition = 'opacity 0.5s ease';
+    
+    setTimeout(() => {
+      landing.style.display = "none";
+      if(app) {
+        app.style.display = "block";
+        // Optional: fade in app
+        app.style.opacity = '0';
+        app.style.transition = 'opacity 0.5s ease';
+        setTimeout(() => app.style.opacity = '1', 50);
+      }
+    }, 500);
+  }
+}
+// Expose to HTML
+window.enterApp = enterApp;
