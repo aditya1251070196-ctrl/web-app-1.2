@@ -1,20 +1,16 @@
 // ===========================
 // PWA + TF.js Setup
 // ===========================
-// Check if Service Workers are supported
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./service-worker.js').then((registration) => {
-    // Optional: Log registration success
     console.log('SW Registered');
   });
 
-  // 🔄 THE FIX: Listen for the "controlling" service worker to change
-  // This triggers when the new SW runs clients.claim()
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!refreshing) {
       refreshing = true;
-      window.location.reload(); // Reloads the page to show the new version
+      window.location.reload(); 
     }
   });
 }
@@ -59,7 +55,7 @@ async function loadModelAndLabels() {
 }
 
 // ===========================
-// Image processing
+// Image processing (UPDATED FOR CROP)
 // ===========================
 function processImage(source, size = 32) {
   const canvas = document.createElement("canvas");
@@ -67,12 +63,32 @@ function processImage(source, size = 32) {
   canvas.height = size;
   const ctx = canvas.getContext("2d");
 
-  const sw = source.videoWidth || source.width;
-  const sh = source.videoHeight || source.height;
+  // 1. Handle Camera Stream (Crop to Guide Box)
+  if (source.tagName === "VIDEO") {
+    const vw = source.videoWidth;
+    const vh = source.videoHeight;
+    
+    // In CSS, the guide box is roughly 60% of the container.
+    // We calculate the shortest dimension of the video to center the crop.
+    const minDim = Math.min(vw, vh);
+    
+    // The Crop Size: 60% of the smallest dimension 
+    // This matches your .guide-box { width: 60% } in CSS
+    const cropSize = minDim * 0.60; 
 
-  ctx.fillStyle = "white";
-  ctx.fillRect(0, 0, size, size);
-  ctx.drawImage(source, 0, 0, sw, sh, 0, 0, size, size);
+    // Calculate center coordinates
+    const sx = (vw - cropSize) / 2;
+    const sy = (vh - cropSize) / 2;
+
+    // Draw only the cropped area into the 32x32 canvas
+    ctx.drawImage(source, sx, sy, cropSize, cropSize, 0, 0, size, size);
+  } 
+  // 2. Handle Uploaded Images (Use Full Image)
+  else {
+    // For uploads, we usually want the whole image as the user likely cropped it already
+    // or the subject is the main focus.
+    ctx.drawImage(source, 0, 0, size, size);
+  }
 
   return canvas;
 }
@@ -83,8 +99,10 @@ function processImage(source, size = 32) {
 async function runPrediction(img) {
   await loadModelAndLabels();
 
+  // Note: 'img' here is already the processed 32x32 canvas from processImage
   const tensor = tf.browser.fromPixels(img)
-    .resizeBilinear([32, 32])
+    // No need to resize here as canvas is already 32x32, but keeping it is safe
+    .resizeBilinear([32, 32]) 
     .mean(2)
     .toFloat()
     .div(255)
@@ -118,21 +136,16 @@ async function runPrediction(img) {
 // ===========================
 // Camera control
 // ===========================
-// ===========================
-// 1. Safe Start Camera
-// ===========================
 async function startCamera() {
   if (cameraRunning) return;
 
   clearResult();
   
-  // SAFETY CHECK: Only hide preview if it exists
   const preview = document.getElementById("cameraPreview");
   if (preview) {
     preview.style.display = "none";
   }
   
-  // Enable clear button logic
   const clearBtn = document.getElementById("clearBtn");
   if (clearBtn) clearBtn.disabled = true;
 
@@ -176,7 +189,7 @@ function stopCamera() {
 
 
 // ===========================
-// Timed scan (camera) - MISSING FUNCTION
+// Timed scan (camera)
 // ===========================
 async function startTimedCameraPrediction(duration = 4000, interval = 250) {
   if (!cameraRunning) {
@@ -199,7 +212,7 @@ async function startTimedCameraPrediction(duration = 4000, interval = 250) {
   predictionInterval = setInterval(async () => {
     if (!video.videoWidth) return;
 
-    // Capture frame
+    // Capture frame (Now crops to guide box)
     const canvas = processImage(video);
     lastFrameDataURL = canvas.toDataURL();
 
@@ -217,18 +230,15 @@ async function startTimedCameraPrediction(duration = 4000, interval = 250) {
     predictionStats[label].sum += confidence;
     predictionStats[label].count += 1;
 
-    setResult(`Detecting: ${label} (${toPercent(confidence)})`);
+    // Use a simpler status update if needed
+    // console.log(`Scanning: ${label} ${toPercent(confidence)}`);
   }, interval);
 
   predictionTimeout = setTimeout(stopTimedPrediction, duration);
 }
-// ===========================
-// 2. Safe Stop Prediction
-// ===========================
-// [file: script.js] - Replace the existing stopTimedPrediction function
 
 // ===========================
-// 2. Safe Stop Prediction (Updated with Threshold)
+// Safe Stop Prediction
 // ===========================
 function stopTimedPrediction() {
   clearInterval(predictionInterval);
@@ -247,8 +257,7 @@ function stopTimedPrediction() {
     }
   }
 
-  // 🛑 THRESHOLD CHECK (New Logic)
-  // If confidence is less than 60% (0.6), force result to "Unknown"
+  // THRESHOLD CHECK
   if (bestAvgConfidence < 0.60) {
     finalLabel = "Unknown";
   }
@@ -256,10 +265,8 @@ function stopTimedPrediction() {
   const confStr = toPercent(bestAvgConfidence);
 
   showMatchResult(finalLabel, confStr);
-
   speakSign(finalLabel);
   
-  // Only send notification if it's NOT unknown (optional, prevents spam)
   if (finalLabel !== "Unknown") {
     sendSafetyNotification(finalLabel, confStr);
   }
@@ -271,10 +278,10 @@ function stopTimedPrediction() {
   if (lastFrameDataURL) {
     const preview = document.getElementById("cameraPreview");
     if (preview) {
-      preview.src = lastFrameDataURL;
+      // This will now show the CROPPED image, confirming to the user what was seen
+      preview.src = lastFrameDataURL; 
       preview.style.display = "block";
     }
-    // Add to history
     addToHistory(finalLabel, confStr);
   }
 
@@ -286,56 +293,38 @@ function stopTimedPrediction() {
   if (clearBtn) clearBtn.disabled = false;
 }
 
-
 // ===========================
-// Finalize camera scan
-// ===========================
-
-
-// ===========================
-// File upload handler (THE CORRECT VERSION)
+// File upload handler
 // ===========================
 function handleImageUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  // UI References
   const block = document.getElementById("uploadBlock");
   const placeholder = document.getElementById("uploadPlaceholder");
   const previewImg = document.getElementById("preview");
   const processedImg = document.getElementById("processedPreview");
 
-  if (!block || !placeholder || !previewImg) {
-    console.error("UI elements missing");
-    return;
-  }
+  if (!block || !placeholder || !previewImg) return;
   
   document.getElementById("clearBtn").disabled = false;
 
   imageFromUpload = true;
   lockButtons(false, false);
-  
   clearResult();
 
   const reader = new FileReader();
   reader.onload = ev => {
     const img = new Image();
     img.onload = () => {
-      // 1. Process image for AI
+      // Process image for AI (No crop for uploads)
       const canvas = processImage(img);
       processedImg.src = canvas.toDataURL();
 
-      // 2. Update UI: Expand the block
       previewImg.src = ev.target.result;
-      
-      // Toggle visibility
       placeholder.style.display = "none";
       previewImg.style.display = "block";
-      
-      // Update container style
       block.classList.add("has-image");
-      
-      // Enable Detect button
       unlockButtons(true, true);
     };
     img.src = ev.target.result;
@@ -346,11 +335,6 @@ function handleImageUpload(e) {
 // ===========================
 // Detect (UPLOAD ONLY)
 // ===========================
-// [file: script.js] - Replace the existing detectImage function
-
-// ===========================
-// Detect (UPLOAD ONLY - Updated with Threshold)
-// ===========================
 async function detectImage() {
   if (!imageFromUpload || isScanning) return;
 
@@ -359,29 +343,22 @@ async function detectImage() {
 
   lockButtons();
   
-  // 1. Run Prediction
   let { label, confidence } = await runPrediction(img);
   
-  // 🛑 THRESHOLD CHECK (New Logic)
   if (confidence < 0.60) {
     label = "Unknown";
   }
   
   const confStr = toPercent(confidence);
 
-  // 2. Show Results
   showMatchResult(label, confStr);
-  
   speakSign(label);
   
   if (label !== "Unknown") {
     sendSafetyNotification(label, confStr);
   }
 
-  // 3. Add to History
-  const displayImage = document.getElementById("preview").src;
   addToHistory(label, confStr);
-
   unlockButtons(true, true);
 }
 
@@ -400,17 +377,13 @@ function unlockButtons(scan = true, detect = false) {
   detectBtn.disabled = !detect;
 }
 
-// --- FIX 1: Updated to match your new index.html ---
 function clearResult() {
-  // Hide the result container instead of trying to clear text
   const container = document.getElementById("resultContainer");
   if (container) {
     container.style.display = "none";
   }
 }
 
-// Note: 'setResult' is no longer needed because we use showMatchResult, 
-// but we keep an empty one just in case old code calls it.
 function setResult(text) { 
   console.log("Status:", text); 
 }
@@ -424,39 +397,40 @@ function toPercent(value) {
 }
 
 // ===========================
-// Sidebar & History Logic
+// Sidebar & History
 // ===========================
-
 function toggleSidebar() {
   const sidebar = document.getElementById("historySidebar");
   sidebar.classList.toggle("open");
 }
 
-// --- FIX 2: Corrected History Function (Standard Image Version) ---
 function addToHistory(label, confidence) {
   const list = document.getElementById("sidebarList");
   if (!list) return;
 
-  // 1. Get Data from safety-logic.js (Standard Reference)
-  const data = SIGN_NOTIFICATIONS[label] || SIGN_NOTIFICATIONS["default"];
+  // Ensure SIGN_NOTIFICATIONS is available (from safety-logic.js)
+  const data = (typeof SIGN_NOTIFICATIONS !== 'undefined' && SIGN_NOTIFICATIONS[label]) 
+    ? SIGN_NOTIFICATIONS[label] 
+    : { title: label, body: "No details available", img: "./icons/icon-192.png" };
+    
+  // Use default if match is Unknown
+  const displayTitle = label === "Unknown" ? "Unknown Sign" : data.title;
   const standardImage = data.img || "./icons/icon-192.png"; 
-  const description = data.body;
+
   const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  // 2. Create Card
   const item = document.createElement("div");
   item.className = "history-item";
 
   item.innerHTML = `
     <img src="${standardImage}" class="history-thumb" alt="Reference">
     <div class="history-details">
-      <span class="history-label">${data.title}</span>
+      <span class="history-label">${displayTitle}</span>
       <span class="history-match-rate">Match: ${confidence}</span>
       <span class="history-time">${timeStr}</span>
     </div>
   `;
 
-  // 3. Add to list
   list.insertBefore(item, list.firstChild);
   if (list.children.length > 10) list.removeChild(list.lastChild);
 }
@@ -464,7 +438,6 @@ function addToHistory(label, confidence) {
 // ===========================
 // Result Display Logic
 // ===========================
-
 function showMatchResult(label, confidenceStr) {
   const container = document.getElementById("resultContainer");
   const labelEl = document.getElementById("resultLabel");
@@ -472,18 +445,15 @@ function showMatchResult(label, confidenceStr) {
   const imgEl = document.getElementById("refImage");
   const descEl = document.getElementById("refDescription");
 
-  // 1. Get Data from Safety Logic
-  const data = SIGN_NOTIFICATIONS[label] || SIGN_NOTIFICATIONS["default"];
+  const data = (typeof SIGN_NOTIFICATIONS !== 'undefined' && SIGN_NOTIFICATIONS[label]) 
+    ? SIGN_NOTIFICATIONS[label] 
+    : SIGN_NOTIFICATIONS["default"];
 
-  // 2. Update Text
-  labelEl.innerText = data.title; // Show nice title (e.g. "Speed Zone 50")
+  labelEl.innerText = data.title;
   confEl.innerText = `Confidence: ${confidenceStr}`;
   descEl.innerText = data.body;
-
-  // 3. Update Image
   imgEl.src = data.img || "./icons/icon-192.png"; 
 
-  // 4. Show the container
   container.style.display = "block";
 }
 
@@ -509,20 +479,10 @@ window.toggleSidebar = toggleSidebar;
 // ===========================
 // Utility: Clear/Reset
 // ===========================
-// ===========================
-// Utility: Clear/Reset (Fixed)
-// ===========================
-// ===========================
-// Utility: Clear/Reset (Fixed)
-// ===========================
 function clearInput() {
-  // 1. Reset the actual file input
   const fileInput = document.getElementById("imageInput");
-  if (fileInput) {
-    fileInput.value = ""; 
-  }
+  if (fileInput) fileInput.value = ""; 
 
-  // 2. Reset the Upload UI Elements
   const block = document.getElementById("uploadBlock");
   const placeholder = document.getElementById("uploadPlaceholder");
   const previewImg = document.getElementById("preview");
@@ -536,99 +496,69 @@ function clearInput() {
   }
   if (processedImg) processedImg.src = "";
 
-  // 3. Reset the Camera Preview (The Fix)
   const cameraPreview = document.getElementById("cameraPreview");
   if (cameraPreview) {
     cameraPreview.style.display = "none";
     cameraPreview.src = "";
   }
 
-  // 4. Hide the result container 
   const resultContainer = document.getElementById("resultContainer");
   if (resultContainer) {
     resultContainer.style.display = "none";
   }
 
-  // 5. Reset Logic State
   imageFromUpload = false;
-
-  // 6. Reset Buttons
   const detectBtn = document.getElementById("detectBtn");
   if (detectBtn) detectBtn.disabled = true; 
   
-  // Disable the clear button itself since everything is cleared
   const clearBtn = document.getElementById("clearBtn");
   if (clearBtn) clearBtn.disabled = true;
-
-  console.log("Input, camera preview, and results cleared.");
 }
 
 // ===========================
-// Utility: Hard Refresh (Nuclear Option)
+// Utility: Hard Refresh
 // ===========================
 async function hardRefresh() {
-  if (confirm("This will clear all stored data and fetch the latest version. Continue?")) {
+  if (confirm("Clear data and refresh?")) {
     try {
-      // 1. Unregister Service Worker
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
-        for (let registration of registrations) {
-          await registration.unregister();
-        }
+        for (let registration of registrations) await registration.unregister();
       }
-
-      // 2. Delete All Caches
       if ('caches' in window) {
         const keys = await caches.keys();
-        await Promise.all(
-          keys.map(key => caches.delete(key))
-        );
+        await Promise.all(keys.map(key => caches.delete(key)));
       }
-
-      // 3. Force Reload
-      // window.location.reload(true) is deprecated in some browsers but still works in many.
-      // Since we cleared the cache above, a normal reload is effectively a hard reload now.
       window.location.reload(); 
-
     } catch (error) {
-      console.error("Hard refresh failed:", error);
-      alert("Error clearing cache. Please manually clear browser data.");
+      console.error(error);
+      window.location.reload();
     }
   }
 }
 
 // ===========================
-// 🗣️ Voice Assistant (Updated)
+// Voice Assistant
 // ===========================
 let isVoiceEnabled = false; 
 
 function speakSign(label) {
-  // 1. Check if voice is enabled
   if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
-
-  // 2. Stop any current speech
   window.speechSynthesis.cancel();
 
   let textToSay = "";
 
   if (label === "Unknown") {
-    textToSay = "Unknown sign detected. Please rescan.";
+    textToSay = "Unknown sign. Please rescan.";
   } else {
-    // 3. Fetch the detailed instruction from safety-logic.js
-    // We access the global SIGN_NOTIFICATIONS object
-    const noteData = SIGN_NOTIFICATIONS[label];
-
+    const noteData = (typeof SIGN_NOTIFICATIONS !== 'undefined') ? SIGN_NOTIFICATIONS[label] : null;
     if (noteData && noteData.body) {
-      // Combine the Name + The Safety Instruction
-      // Example: "Speed limit 50. Standard urban limit. Watch for cross traffic."
       textToSay = `${label}. ${noteData.body}`;
     } else {
-      // Fallback if description is missing
       textToSay = `Caution. ${label}.`;
     }
   }
 
-  // 4. Speak
   const utterance = new SpeechSynthesisUtterance(textToSay);
   utterance.lang = 'en-US'; 
   utterance.rate = 1.0; 
@@ -638,7 +568,7 @@ function speakSign(label) {
 function toggleVoice(checkbox) {
   isVoiceEnabled = checkbox.checked;
   if (isVoiceEnabled) {
-    const warmUp = new SpeechSynthesisUtterance("Voice guidance active.");
+    const warmUp = new SpeechSynthesisUtterance("Voice active.");
     window.speechSynthesis.speak(warmUp);
   } else {
     window.speechSynthesis.cancel();
@@ -653,16 +583,13 @@ function enterApp() {
   const landing = document.getElementById("landing-page");
   const app = document.getElementById("main-app");
   
-  // Visual Transition
   if(landing) {
     landing.style.opacity = '0';
     landing.style.transition = 'opacity 0.5s ease';
-    
     setTimeout(() => {
       landing.style.display = "none";
       if(app) {
         app.style.display = "block";
-        // Optional: fade in app
         app.style.opacity = '0';
         app.style.transition = 'opacity 0.5s ease';
         setTimeout(() => app.style.opacity = '1', 50);
@@ -670,5 +597,4 @@ function enterApp() {
     }, 500);
   }
 }
-// Expose to HTML
 window.enterApp = enterApp;
