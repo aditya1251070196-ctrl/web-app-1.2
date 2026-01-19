@@ -110,28 +110,40 @@
 
   <div class="container">
     
+    <div class="camera-section">
+    
     <div class="camera-wrapper">
-      
-      <div id="scanOverlay" class="scan-overlay hidden">
-        <div class="scanner"></div>
-        <p>Scanning… Hold steady</p>
-      </div>
-      
       <img id="cameraPreview" style="display:none;" />
-      <video id="video"  autoplay playsinline></video>
-      <div class="guide-box">
+        <video id="video" autoplay playsinline muted></video>
+        
+        <div class="guide-box">
             <span class="corner top-left"></span>
             <span class="corner top-right"></span>
             <span class="corner bottom-left"></span>
             <span class="corner bottom-right"></span>
         </div>
-      <canvas id="canvas"  style="display:none;"></canvas>
+        
+        <div id="scanOverlay" class="scan-overlay hidden">
+            <div class="scan-line"></div>
+        </div>
+
+        <div id="zoomContainer" class="zoom-controls hidden">
+            <div class="zoom-btn minus">−</div>
+            <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1">
+            <div class="zoom-btn plus">+</div>
+        </div>
+
+        
+ 
     </div>
 
-    <div style="display:flex; justify-content: center; gap: 10px; margin-top: 15px;">
-      <button onclick="startCamera()">Start Camera</button>
-      <button id="scanBtn" onclick="startTimedCameraPrediction(4000, 250)">Scan (4s)</button>
+    <div class="controls">
+        <button class="btn btn-secondary" onclick="startCamera()">📸 Open Cam</button>
+        <button id="scanBtn" class="btn btn-primary" onclick="startTimedCameraPrediction()" disabled>🔍 Scan Sign</button>
+        <button class="btn btn-primary" onclick="stopCamera()">🛑Stop Camera</button>
     </div>
+
+</div>
 
     <div id="uploadBlock" class="upload-block" onclick="document.getElementById('imageInput').click()">
       <input type="file" id="imageInput" accept="image/*" style="display:none" />
@@ -168,7 +180,7 @@
     
 
     <div class="action-buttons" style="margin-top: 20px; border-top: 1px solid #333; padding-top: 20px;">
-      <button class="secondary-btn" onclick="stopCamera()">Stop Camera</button>
+      
       <button class="secondary-btn" onclick="hardRefresh()">Refresh App</button>
     </div>
 
