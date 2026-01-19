@@ -821,3 +821,35 @@ img {
 .primary:hover { transform: scale(1.05); }
 
 .secondary { background: #d35400; color: white; }
+
+/* ===========================
+   2. THE TARGET BOX (Professional Style)
+   =========================== */
+.guide-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    
+    width: 60%;
+    aspect-ratio: 1 / 1;
+    
+    /* Remove full border, use corners for a "Scanner" look */
+    border: none;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Create the "Bracket" corners */
+.guide-box .corner {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #00d2ff;
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+}
+
+.top-left { top: 0; left: 0; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
+.top-right { top: 0; right: 0; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
+.bottom-left { bottom: 0; left: 0; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
+.bottom-right { bottom: 0; right: 0; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
