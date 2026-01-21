@@ -141,13 +141,7 @@ async function startCamera() {
 
   clearResult();
   
-  const preview = document.getElementById("cameraPreview");
-  if (preview) {
-    preview.style.display = "none";
-  }
-  
-  const clearBtn = document.getElementById("clearBtn");
-  if (clearBtn) clearBtn.disabled = true;
+  // ... (existing code: preview hiding, clearBtn disabling) ...
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -161,6 +155,16 @@ async function startCamera() {
     scanBtn.disabled = false;
     imageFromUpload = false;
     detectBtn.disabled = true;
+
+    // --- NEW CODE: Update Button UI ---
+    const toggleBtn = document.getElementById("camToggleBtn");
+    if (toggleBtn) {
+      toggleBtn.innerText = "🛑 Stop Camera";
+      // Optional: Change style to look like a 'danger' button
+      // toggleBtn.classList.remove("btn-secondary");
+      // toggleBtn.classList.add("btn-primary"); 
+    }
+    // ----------------------------------
 
   } catch (err) {
     alert("Camera access failed or denied.");
@@ -185,8 +189,28 @@ function stopCamera() {
   }
 
   cameraRunning = false;
+
+  // --- NEW CODE: Reset Button UI ---
+  const toggleBtn = document.getElementById("camToggleBtn");
+  if (toggleBtn) {
+    toggleBtn.innerText = "📸 Open Cam";
+    // Optional: Revert style
+    // toggleBtn.classList.add("btn-secondary");
+    // toggleBtn.classList.remove("btn-primary");
+  }
+  // ---------------------------------
 }
 
+// ===========================
+// Camera Toggle Logic
+// ===========================
+function toggleCamera() {
+  if (cameraRunning) {
+    stopCamera();
+  } else {
+    startCamera();
+  }
+}
 
 // ===========================
 // Timed scan (camera)
@@ -471,6 +495,7 @@ document.addEventListener("DOMContentLoaded", () => {
 window.startCamera = startCamera;
 window.startTimedCameraPrediction = startTimedCameraPrediction;
 window.stopCamera = stopCamera;
+window.toggleCamera = toggleCamera;
 window.detectImage = detectImage;
 window.clearInput = clearInput;
 window.hardRefresh = hardRefresh;
