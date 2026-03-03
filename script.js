@@ -96,11 +96,13 @@ function processImage(source, size = 32) {
 // ===========================
 // Run prediction
 // ===========================
+
+
 async function runPrediction(img) {
   await loadModelAndLabels();
 
   // Note: 'img' here is already the processed 32x32 canvas from processImage
-  const tensor = tf.browser.fromPixels(img)
+  const tensor = tf.browser.fromPixels(img)                                                // Converts the canvas data into tensors
     // No need to resize here as canvas is already 32x32, but keeping it is safe
     .resizeBilinear([32, 32]) 
     .mean(2)
@@ -109,9 +111,19 @@ async function runPrediction(img) {
     .expandDims(0)
     .expandDims(-1);
 
+  // --- NEW TIMING CODE STARTS HERE ---
+  const startTime = performance.now();
+
   const logits = model.predict(tensor);
   const probsTensor = tf.softmax(logits);
-  const probs = await probsTensor.data();
+  
+  // The "await" here forces the app to wait for the GPU to finish processing
+  const probs = await probsTensor.data(); 
+
+  const endTime = performance.now();
+  const inferenceTime = (endTime - startTime).toFixed(2);
+  console.log(`Inference time: ${inferenceTime} ms`);
+  // --- NEW TIMING CODE ENDS HERE ---
 
   let max = probs[0];
   let index = 0;
@@ -623,3 +635,4 @@ function enterApp() {
   }
 }
 window.enterApp = enterApp;
+
