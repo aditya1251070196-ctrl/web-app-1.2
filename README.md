@@ -25,7 +25,7 @@ Users are encouraged to validate results independently before relying on them in
 
 
 
-#New project
+# New project
 
 # Empirical Research Dataset & Evaluation Metrics for QuantAgent
 
